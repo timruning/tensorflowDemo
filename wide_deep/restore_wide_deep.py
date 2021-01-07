@@ -168,6 +168,7 @@ def input_fn_eval():
 def input_fn_predict():
     return train_ds.take(1)
 
+
 estimator.train(input_fn=lambda: df_to_dataset(train, batch_size=batch_size), steps=1000)
 metrics = estimator.evaluate(input_fn=lambda: df_to_dataset(train, batch_size=batch_size))
 print(metrics)
@@ -178,5 +179,3 @@ print(t)
 #     estimator.train(input_fn=lambda: df_to_dataset(train, batch_size=batch_size), steps=20)
 #     metrics = estimator.evaluate(input_fn=lambda: df_to_dataset(train, batch_size=batch_size))
 #     print(metrics)
-
-

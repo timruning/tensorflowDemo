@@ -104,22 +104,17 @@ if __name__ == '__main__':
         sess.run(tf.tables_initializer())
         print(sess.run(inp_cat_l))
 
-    # cat_emb = tf.feature_column.embedding_column("cat", dimension=64)
-    # cat_emb = tf.feature_column.input_layer(features_new, [cat_emb])
-    # with tf.Session() as sess:
-    #     # 在此处 必须使用 tf.tables_initializer来初始化 lookuptable
-    #     sess.run(tf.tables_initializer())
-    #     print(sess.run(cat_emb))
-
     columns_name_multi = ['id', 'cat']
     data_multi = pd.read_csv('/Users/songfeng/workspace/github/tensorflowDemo/data/categorical_column_multi.csv',
                              names=columns_name_multi)
+    # data_multi['cat'] = data_multi['cat'].map(lambda x: x.split(" "))
     print(data_multi)
     features_multi = {key: np.array(value) for key, value in dict(data_multi).items()}
     print(features_multi)
     cate_multi = tf.feature_column.categorical_column_with_vocabulary_list('cat',
-                                                                           vocabulary_list=['test', 'train', 'eval'],
-                                                                           default_value=1)
+                                                                                    vocabulary_list=['test', 'train',
+                                                                                                     'eval'],
+                                                                                    default_value=1)
     print(cate_multi)
     cate_multi = tf.feature_column.indicator_column(cate_multi)
 

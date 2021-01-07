@@ -1,3 +1,4 @@
+# -*- coding: UTF-8 -*-
 import numpy as np
 import pandas as pd
 
@@ -9,9 +10,23 @@ from sklearn.model_selection import train_test_split
 
 print(tf.__version__)
 
-URL = 'https://storage.googleapis.com/applied-dl/heart.csv'
+URL = '../data/applied-dl/heart.csv'
 dataframe = pd.read_csv(URL)
 print(dataframe.head())
+
+
+def label(ahd):
+    if 'Yes'.__eq__(ahd):
+        return 1
+    else:
+        return 0
+
+
+dataframe['target'] = dataframe['AHD'].map(lambda x: label(x))
+dataframe = dataframe[
+    ['target', "Age", "Sex", "ChestPain", "RestBP", "Chol", "Fbs", "RestECG", "MaxHR", "ExAng", "Oldpeak", "Slope",
+     "Ca", "Thal"]]
+dataframe = dataframe.dropna()
 
 # @title 默认标题文本
 train, test = train_test_split(dataframe, shuffle=False, test_size=0.2)
@@ -20,7 +35,7 @@ print(len(train), 'train examples')
 print(len(val), 'validation examples')
 print(len(test), 'test examples')
 
-print(dict(dataframe)['age'])
+print(dict(dataframe)['Age'])
 
 
 # 一种从 Pandas Dataframe 创建 tf.data 数据集的实用程序方法（utility method）
@@ -41,7 +56,7 @@ test_ds = df_to_dataset(test, shuffle=False, batch_size=batch_size)
 
 for feature_batch, label_batch in train_ds.take(1):
     print('Every feature:', list(feature_batch.keys()))
-    print('A batch of ages:', feature_batch['age'])
+    print('A batch of ages:', feature_batch['Age'])
     print('A batch of targets:', label_batch)
     break
 
@@ -55,35 +70,32 @@ sess = tf.compat.v1.Session()
 # 并转换一批次数据的一个实用程序方法
 def demo(feature_column):
     feature_layer = layers.DenseFeatures(feature_column)
-    print(feature_layer(example_batch))
-    print(feature_layer(example_batch).eval(session=sess))
-
-    # print(feature_layer(example_batch).numpy())
-    # print(feature_layer(example_batch).numpy().shape)
+    # print(feature_layer(example_batch).eval(session=sess))
 
 
-age = feature_column.numeric_column("age")
-demo(age)
 
-age_buckets = feature_column.bucketized_column(age, boundaries=[18, 25, 30, 35, 40, 45, 50, 55, 60, 65])
-demo(age_buckets)
+age = feature_column.numeric_column("Age")
+# demo(age)
+
+age_buckets = feature_column.bucketized_column(age, boundaries=[18, 25, 30, 35, 40, 45, 50, 55, 60, 65, 120])
+# demo(age_buckets)
 
 thal = feature_column.categorical_column_with_vocabulary_list(
-    'thal', ['fixed', 'normal', 'reversible'])
+    'Thal', ['fixed', 'normal', 'reversible'])
 
 thal_one_hot = feature_column.indicator_column(thal)
-demo(thal_one_hot)
+# demo(thal_one_hot)
 
 # 注意到嵌入列的输入是我们之前创建的类别列
 thal_embedding = feature_column.embedding_column(thal, dimension=8)
-demo(thal_embedding)
+# demo(thal_embedding)
 
 thal_hashed = feature_column.categorical_column_with_hash_bucket(
-    'thal', hash_bucket_size=1000)
-demo(feature_column.indicator_column(thal_hashed))
+    'Thal', hash_bucket_size=1000)
+# demo(feature_column.indicator_column(thal_hashed))
 
 crossed_feature = feature_column.crossed_column([age_buckets, thal], hash_bucket_size=1000)
-demo(feature_column.indicator_column(crossed_feature))
+# demo(feature_column.indicator_column(crossed_feature))
 
 feature_columns = []
 
@@ -91,7 +103,7 @@ line_columns = []
 dnn_columns = []
 
 # 数值列
-for header in ['age', 'trestbps', 'chol', 'thalach', 'oldpeak', 'slope', 'ca']:
+for header in ['Age', 'Sex', 'Chol', 'Fbs', 'Oldpeak', 'Slope', 'Ca']:
     col = feature_column.numeric_column(header)
     feature_columns.append(col)
     line_columns.append(col)
@@ -105,7 +117,7 @@ dnn_columns.append(age_buckets)
 
 # 分类列
 thal = feature_column.categorical_column_with_vocabulary_list(
-    'thal', ['fixed', 'normal', 'reversible'])
+    'Thal', ['fixed', 'normal', 'reversible'])
 thal_one_hot = feature_column.indicator_column(thal)
 feature_columns.append(thal_one_hot)
 line_columns.append(thal_one_hot)
@@ -143,18 +155,13 @@ DNNLinearCombinedRegressor = tf.estimator.DNNLinearCombinedRegressor
 estimator = DNNLinearCombinedRegressor(
     # wide settings
     linear_feature_columns=line_columns,
-    linear_optimizer=tf.keras.optimizers.Ftrl(learning_rate=0.01),
+    linear_optimizer=tf.train.Ad.Ftrl(learning_rate=0.01),
     # deep settings
     dnn_feature_columns=dnn_columns,
     dnn_hidden_units=[1000, 500, 100],
-    dnn_optimizer=lambda: tf.keras.optimizers.Adam(
-        learning_rate=tf.compat.v1.train.exponential_decay(
-            learning_rate=0.1,
-            global_step=tf.compat.v1.train.get_global_step(),
-            decay_steps=10000,
-            decay_rate=0.96)),
+    dnn_optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
     # warm-start settings
-    model_dir="/Users/songfeng/workspace/github/tensorflowDemo/model/widedeep2",
+    model_dir="/Users/songfeng/workspace/github/tensorflowDemo/model/widedeep3",
     # warm_start_from="/Users/songfeng/workspace/github/tensorflowDemo/model/widedeep2"
 )
 
@@ -167,6 +174,14 @@ lambda: tf.AdamOptimizer(
         global_step=tf.get_global_step(),
         decay_steps=10000,
         decay_rate=0.96))
+
+
+dnn_optimizer=lambda: tf.keras.optimizers.Adam(
+        learning_rate=tf.compat.v1.train.exponential_decay(
+            learning_rate=0.1,
+            global_step=tf.compat.v1.train.get_global_step(),
+            decay_steps=10000,
+            decay_rate=0.96))
 
 
 def input_fn_train():
@@ -184,6 +199,38 @@ def input_fn_predict():
 estimator.train(input_fn=lambda: df_to_dataset(train, batch_size=batch_size), steps=1000)
 metrics = estimator.evaluate(input_fn=lambda: df_to_dataset(test, batch_size=batch_size))
 print(metrics)
+
+# estimator.export_saved_model()
+['Age', 'Sex', 'Chol', 'Fbs', 'Oldpeak', 'Slope', 'Ca']
+
+
+def serving_input_fn():
+    label_ids = tf.compat.v1.placeholder(tf.int32, [None], name='target')
+    Age_ids = tf.compat.v1.placeholder(tf.int32, [None, 10], name='Age')
+    Sex_ids = tf.compat.v1.placeholder(tf.int32, [None, 2], name='Sex')
+    Chol_ids = tf.compat.v1.placeholder(tf.int32, [None, 10], name='Chol')
+    Fbs_ids = tf.compat.v1.placeholder(tf.int32, [None, 20], name='Fbs')
+    Oldpeak_ids = tf.compat.v1.placeholder(tf.int32, [None, 30], name='Oldpeak')
+    Slope_ids = tf.compat.v1.placeholder(tf.int32, [None, 20], name='Slope')
+    Ca_ids =tf.compat.v1.placeholder(tf.int32, [None, 30], name='Ca')
+    Thal_ids = tf.compat.v1.placeholder(tf.string, [None, 3], name='Thal')
+    input_fn = tf.estimator.export.build_raw_serving_input_receiver_fn({
+        # 'target': label_ids,
+        'Age': Age_ids,
+        'Sex': Sex_ids,
+        'Chol': Chol_ids,
+        'Fbs': Fbs_ids,
+        'Oldpeak': Oldpeak_ids,
+        'Slope': Slope_ids,
+        'Ca': Ca_ids,
+        'Thal': Thal_ids,
+    })()
+    return input_fn
+
+
+estimator.export_saved_model(export_dir_base="/Users/songfeng/workspace/github/tensorflowDemo/model/widedeep3_pb",
+                             serving_input_receiver_fn=serving_input_fn)
+
 #
 # t = estimator.predict(input_fn=lambda: df_to_dataset(dataframe, shuffle=False, batch_size=10))
 #
