@@ -73,7 +73,6 @@ def demo(feature_column):
     # print(feature_layer(example_batch).eval(session=sess))
 
 
-
 age = feature_column.numeric_column("Age")
 # demo(age)
 
@@ -117,7 +116,7 @@ dnn_columns.append(age_buckets)
 
 # 分类列
 thal = feature_column.categorical_column_with_vocabulary_list(
-    'Thal', ['fixed', 'normal', 'reversible'])
+    'Thal', ['fixed', 'normal', 'reversible'], dtype=tf.string)
 thal_one_hot = feature_column.indicator_column(thal)
 feature_columns.append(thal_one_hot)
 line_columns.append(thal_one_hot)
@@ -152,17 +151,31 @@ ftrl = tf.keras.optimizers.Ftrl(learning_rate=0.01)
 
 DNNLinearCombinedRegressor = tf.estimator.DNNLinearCombinedRegressor
 
+# estimator = DNNLinearCombinedRegressor(
+#     # wide settings
+#     linear_feature_columns=line_columns,
+#     linear_optimizer=tf.train.Ftrl(learning_rate=0.01),
+#     # deep settings
+#     dnn_feature_columns=dnn_columns,
+#     dnn_hidden_units=[1000, 500, 100],
+#     dnn_optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
+#     # warm-start settings
+#     model_dir="/Users/songfeng/workspace/github/tensorflowDemo/model/widedeep3",
+#     # warm_start_from="/Users/songfeng/workspace/github/tensorflowDemo/model/widedeep2"
+# )
+
 estimator = DNNLinearCombinedRegressor(
     # wide settings
     linear_feature_columns=line_columns,
-    linear_optimizer=tf.train.Ad.Ftrl(learning_rate=0.01),
+    linear_optimizer='Ftrl',
     # deep settings
     dnn_feature_columns=dnn_columns,
     dnn_hidden_units=[1000, 500, 100],
-    dnn_optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
+    dnn_optimizer='Adam',
     # warm-start settings
-    model_dir="/Users/songfeng/workspace/github/tensorflowDemo/model/widedeep3",
-    # warm_start_from="/Users/songfeng/workspace/github/tensorflowDemo/model/widedeep2"
+    # warm_start_from="/Users/songfeng/workspace/github/tensorflowDemo/model"
+    model_dir="/Users/songfeng/workspace/github/tensorflowDemo/model/widedeep3"
+    # warm_start_from="/Users/songfeng/workspace/github/tensorflowDemo/model/widedeep4"
 )
 
 # To apply L1 and L2 regularization, you can set dnn_optimizer to:
@@ -175,30 +188,22 @@ lambda: tf.AdamOptimizer(
         decay_steps=10000,
         decay_rate=0.96))
 
-
-dnn_optimizer=lambda: tf.keras.optimizers.Adam(
-        learning_rate=tf.compat.v1.train.exponential_decay(
-            learning_rate=0.1,
-            global_step=tf.compat.v1.train.get_global_step(),
-            decay_steps=10000,
-            decay_rate=0.96))
-
-
-def input_fn_train():
-    return train_ds
-
-
-def input_fn_eval():
-    return train_ds.take(1)
-
-
-def input_fn_predict():
-    return train_ds.take(1)
-
+dnn_optimizer = lambda: tf.keras.optimizers.Adam(
+    learning_rate=tf.compat.v1.train.exponential_decay(
+        learning_rate=0.1,
+        global_step=tf.compat.v1.train.get_global_step(),
+        decay_steps=10000,
+        decay_rate=0.96))
 
 estimator.train(input_fn=lambda: df_to_dataset(train, batch_size=batch_size), steps=1000)
 metrics = estimator.evaluate(input_fn=lambda: df_to_dataset(test, batch_size=batch_size))
 print(metrics)
+
+print("predict")
+s = estimator.predict(input_fn=lambda: df_to_dataset(test, batch_size=batch_size))
+for i in s:
+    print(i)
+    break
 
 # estimator.export_saved_model()
 ['Age', 'Sex', 'Chol', 'Fbs', 'Oldpeak', 'Slope', 'Ca']
@@ -206,14 +211,14 @@ print(metrics)
 
 def serving_input_fn():
     label_ids = tf.compat.v1.placeholder(tf.int32, [None], name='target')
-    Age_ids = tf.compat.v1.placeholder(tf.int32, [None, 10], name='Age')
-    Sex_ids = tf.compat.v1.placeholder(tf.int32, [None, 2], name='Sex')
-    Chol_ids = tf.compat.v1.placeholder(tf.int32, [None, 10], name='Chol')
-    Fbs_ids = tf.compat.v1.placeholder(tf.int32, [None, 20], name='Fbs')
-    Oldpeak_ids = tf.compat.v1.placeholder(tf.int32, [None, 30], name='Oldpeak')
-    Slope_ids = tf.compat.v1.placeholder(tf.int32, [None, 20], name='Slope')
-    Ca_ids =tf.compat.v1.placeholder(tf.int32, [None, 30], name='Ca')
-    Thal_ids = tf.compat.v1.placeholder(tf.string, [None, 3], name='Thal')
+    Age_ids = tf.compat.v1.placeholder(tf.int32, [None], name='Age')
+    Sex_ids = tf.compat.v1.placeholder(tf.int32, [None], name='Sex')
+    Chol_ids = tf.compat.v1.placeholder(tf.int32, [None], name='Chol')
+    Fbs_ids = tf.compat.v1.placeholder(tf.int32, [None], name='Fbs')
+    Oldpeak_ids = tf.compat.v1.placeholder(tf.int32, [None], name='Oldpeak')
+    Slope_ids = tf.compat.v1.placeholder(tf.int32, [None], name='Slope')
+    Ca_ids = tf.compat.v1.placeholder(tf.int32, [None], name='Ca')
+    Thal_ids = tf.compat.v1.placeholder(tf.string, [None], name='Thal')
     input_fn = tf.estimator.export.build_raw_serving_input_receiver_fn({
         # 'target': label_ids,
         'Age': Age_ids,
@@ -230,16 +235,3 @@ def serving_input_fn():
 
 estimator.export_saved_model(export_dir_base="/Users/songfeng/workspace/github/tensorflowDemo/model/widedeep3_pb",
                              serving_input_receiver_fn=serving_input_fn)
-
-#
-# t = estimator.predict(input_fn=lambda: df_to_dataset(dataframe, shuffle=False, batch_size=10))
-#
-# print(train.shape)
-#
-# for i, v in enumerate(t):
-#     print(i, v)
-
-# for step in range(0, 1000, 20):
-#     estimator.train(input_fn=lambda: df_to_dataset(train, batch_size=batch_size), steps=20)
-#     metrics = estimator.evaluate(input_fn=lambda: df_to_dataset(train, batch_size=batch_size))
-#     print(metrics)
