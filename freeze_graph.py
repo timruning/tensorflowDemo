@@ -135,6 +135,7 @@ def freeze_graph_with_def_protos(input_graph_def,
 
   if input_graph_def:
     _ = importer.import_graph_def(input_graph_def, name="")
+
   with session.Session() as sess:
     if input_saver_def:
       saver = saver_lib.Saver(

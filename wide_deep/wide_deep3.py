@@ -151,31 +151,22 @@ ftrl = tf.keras.optimizers.Ftrl(learning_rate=0.01)
 
 DNNLinearCombinedRegressor = tf.estimator.DNNLinearCombinedRegressor
 
-# estimator = DNNLinearCombinedRegressor(
-#     # wide settings
-#     linear_feature_columns=line_columns,
-#     linear_optimizer=tf.train.Ftrl(learning_rate=0.01),
-#     # deep settings
-#     dnn_feature_columns=dnn_columns,
-#     dnn_hidden_units=[1000, 500, 100],
-#     dnn_optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
-#     # warm-start settings
-#     model_dir="/Users/songfeng/workspace/github/tensorflowDemo/model/widedeep3",
-#     # warm_start_from="/Users/songfeng/workspace/github/tensorflowDemo/model/widedeep2"
-# )
-
 estimator = DNNLinearCombinedRegressor(
     # wide settings
     linear_feature_columns=line_columns,
-    linear_optimizer='Ftrl',
+    linear_optimizer=tf.keras.optimizers.Ftrl(learning_rate=0.01),
     # deep settings
     dnn_feature_columns=dnn_columns,
     dnn_hidden_units=[1000, 500, 100],
-    dnn_optimizer='Adam',
+    dnn_optimizer=lambda: tf.keras.optimizers.Adam(
+        learning_rate=tf.compat.v1.train.exponential_decay(
+            learning_rate=0.1,
+            global_step=tf.compat.v1.train.get_global_step(),
+            decay_steps=10000,
+            decay_rate=0.96)),
     # warm-start settings
-    # warm_start_from="/Users/songfeng/workspace/github/tensorflowDemo/model"
-    model_dir="/Users/songfeng/workspace/github/tensorflowDemo/model/widedeep3"
-    # warm_start_from="/Users/songfeng/workspace/github/tensorflowDemo/model/widedeep4"
+    model_dir="/Users/songfeng/workspace/github/tensorflowDemo/model/widedeep2",
+    # warm_start_from="/Users/songfeng/workspace/github/tensorflowDemo/model/widedeep2"
 )
 
 # To apply L1 and L2 regularization, you can set dnn_optimizer to:
@@ -204,6 +195,11 @@ s = estimator.predict(input_fn=lambda: df_to_dataset(test, batch_size=batch_size
 for i in s:
     print(i)
     break
+
+
+# model = estimator.model_fn()
+
+# predictions = model(df_to_dataset(train, batch_size=batch_size), training=True)
 
 # estimator.export_saved_model()
 ['Age', 'Sex', 'Chol', 'Fbs', 'Oldpeak', 'Slope', 'Ca']
