@@ -135,3 +135,8 @@ class LinearModel(training.Model):
         base_config = base_layer.Layer.get_config(self)
         return dict(list(base_config.items()) + list(config.items()))
 
+    @classmethod
+    def from_config(cls, config, custom_objects=None):
+        del custom_objects
+        return cls(**config)
+

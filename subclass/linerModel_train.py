@@ -12,7 +12,7 @@ import datetime
 from subclass import LinearModel
 
 print(tf.__version__)
-# tf.compat.v1.enable_eager_execution()
+tf.compat.v1.enable_eager_execution()
 # print(tf.executing_eagerly())
 URL = '../data/applied-dl/heart.csv'
 dataframe = pd.read_csv(URL)
@@ -156,7 +156,8 @@ adagrad = tf.keras.optimizers.Adagrad(learning_rate=0.001, initial_accumulator_v
 
 ftrl = tf.compat.v1.keras.optimizers.Ftrl(learning_rate=0.01)
 
-feature_layer = tf.compat.v1.keras.layers.DenseFeatures(feature_columns)
+
+# feature_layer = tf.compat.v1.keras.layers.DenseFeatures(feature_columns)
 
 # model1 = LinearModel()
 # x = model1(feature_layer)
@@ -165,70 +166,60 @@ feature_layer = tf.compat.v1.keras.layers.DenseFeatures(feature_columns)
 
 # model1 = tf.keras.experimental.WideDeepModel()
 # model1 = tf.keras.experimental.LinearModel()
-model1 = LinearModel.LinearModel()
-model = tf.keras.Sequential([feature_layer, model1])
+# model1 = LinearModel.LinearModel()
+# model = tf.keras.Sequential([tf.compat.v1.keras.layers.DenseFeatures(feature_columns), model1])
 
-# class Model(tf.keras.Model):
-#     def __init__(self):
-#         super(Model, self).__init__()
-#         self.feature_layes = tf.compat.v1.keras.layers.DenseFeatures(feature_columns)
-#         self.linear = LinearModel.LinearModel()
-#
-#     def call(self, inputs, training=None, mask=None):
-#         x = self.feature_layes(inputs)
-#         x = self.linear(x)
-#         return x
-# model = Model()
+
+class Model(tf.keras.Model):
+    def __init__(self):
+        super(Model, self).__init__()
+        self.feature_layes = tf.compat.v1.keras.layers.DenseFeatures(feature_columns)
+        self.linear = LinearModel.LinearModel()
+
+    def call(self, inputs, training=None, mask=None):
+        x = self.feature_layes(inputs)
+        x = self.linear(x)
+        return x
+
+
+model = Model()
 
 opt = tf.keras.optimizers.Adam()
 loss_fn = tf.keras.losses.MeanSquaredError()
-
+# loss_object = tf.keras.losses.binary_crossentropy(from_logits=True)
+train_loss = tf.keras.metrics.Mean(name='train_loss')
 model.compile(optimizer=ftrl, loss=loss_fn)
-
+train_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(name='train_accuracy')
 log_dir = "../logs/fit/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
 
-# estimator = tf.keras.estimator.model_to_estimator(
-#     keras_model=model, model_dir="../model/1.14/estimator"
-# )
-#
-# estimator.train(input_fn=lambda: df_to_dataset(train, batch_size=10), steps=10)
 
-# model.fit(train_ds, epochs=1)
-#
-model.fit(x=train_ds,
-          epochs=5,
-          validation_data=test_ds,
-          callbacks=[tensorboard_callback])
-#
-# model.save("../model/1.14/wide1", save_format="tf")
-tf.compat.v1.keras.experimental.export_saved_model(model=model, saved_model_path="../model/1.14/wide1",
-                                                   # serving_only=True,
-                                                   # custom_objects = {""}
-                                                   )
-new_model = tf.keras.experimental.load_from_saved_model("../model/1.14/wide1")
-new_model.summary()
+@tf.function
+def train_step(images, labels):
+    with tf.GradientTape() as tape:
+        # training=True is only needed if there are layers with different
+        # behavior during training versus inference (e.g. Dropout).
+        predictions = model(images, training=True)
+        loss = tf.keras.losses.binary_crossentropy(y_true=labels, y_pred=predictions)
+    gradients = tape.gradient(loss, model.trainable_variables)
+    ftrl.apply_gradients(zip(gradients, model.trainable_variables))
+
+    train_loss(loss)
+    train_accuracy(labels, predictions)
 
 
-# tf.keras.models.save_model(model=model,filepath="../model/1.14/wide1",save_format="tf")
+EPOCHS = 5
 
+for epoch in range(EPOCHS):
+    # Reset the metrics at the start of the next epoch
+    train_loss.reset_states()
+    train_accuracy.reset_states()
 
-#
-# print("hello")
-# s = ""
-# for i in range(10):
-#     s += "\thello"
-# print(s)
-# #
-# #
-# # model.save("../model/1.14/wide",save_format="tf")
-# # model.summary()
-# # del model
-# # print("new")
+    for images, labels in train_ds:
+        train_step(images, tf.expand_dims(labels, axis=1))
 
-
-# from tensorflow.python.saved_model import loader
-#
-# with tf.Session() as sess:
-#     loader.load(sess, [], "../model/1.14/wide1")
-#     print("abc")
+    print(
+        f'Epoch {epoch + 1}, '
+        f'Loss: {train_loss.result()}, '
+        f'Accuracy: {train_accuracy.result() * 100}, '
+    )
