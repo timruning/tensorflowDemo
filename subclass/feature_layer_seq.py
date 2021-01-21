@@ -7,6 +7,7 @@ import tensorflow as tf
 from tensorflow import feature_column
 from tensorflow.keras import layers
 from sklearn.model_selection import train_test_split
+from tensorflow.keras.experimental import LinearModel
 
 print(tf.__version__)
 
@@ -149,89 +150,15 @@ adagrad = tf.keras.optimizers.Adagrad(learning_rate=0.001, initial_accumulator_v
 
 ftrl = tf.keras.optimizers.Ftrl(learning_rate=0.01)
 
-DNNLinearCombinedRegressor = tf.estimator.DNNLinearCombinedRegressor
+feature_layer = tf.keras.layers.DenseFeatures(feature_columns)
 
-# estimator = DNNLinearCombinedRegressor(
-#     # wide settings
-#     linear_feature_columns=line_columns,
-#     linear_optimizer=tf.train.Ftrl(learning_rate=0.01),
-#     # deep settings
-#     dnn_feature_columns=dnn_columns,
-#     dnn_hidden_units=[1000, 500, 100],
-#     dnn_optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
-#     # warm-start settings
-#     model_dir="/Users/songfeng/workspace/github/tensorflowDemo/model/widedeep3",
-#     # warm_start_from="/Users/songfeng/workspace/github/tensorflowDemo/model/widedeep2"
-# )
+model = tf.keras.Sequential([
+    feature_layer,
+    layers.Dense(1, activation="sigmoid")
+])
+model.compile(optimizer=ftrl,
+              loss="binary_crossentropy",
+              run_eagerly=True)
+model.fit(x=train_ds, epochs=1)
+model.save(filepath="../model/2.4/feature_layer_wide")
 
-estimator = DNNLinearCombinedRegressor(
-    # wide settings
-    linear_feature_columns=line_columns,
-    linear_optimizer='Ftrl',
-    # deep settings
-    dnn_feature_columns=dnn_columns,
-    dnn_hidden_units=[1000, 500, 100],
-    dnn_optimizer='Adam',
-    # warm-start settings
-    # warm_start_from="/Users/songfeng/workspace/github/tensorflowDemo/model"
-    model_dir="/Users/songfeng/workspace/github/tensorflowDemo/model/widedeep3"
-    # warm_start_from="/Users/songfeng/workspace/github/tensorflowDemo/model/widedeep4"
-)
-
-# To apply L1 and L2 regularization, you can set dnn_optimizer to:
-
-# To apply learning rate decay, you can set dnn_optimizer to a callable:
-lambda: tf.AdamOptimizer(
-    learning_rate=tf.exponential_decay(
-        learning_rate=0.1,
-        global_step=tf.get_global_step(),
-        decay_steps=10000,
-        decay_rate=0.96))
-
-dnn_optimizer = lambda: tf.keras.optimizers.Adam(
-    learning_rate=tf.compat.v1.train.exponential_decay(
-        learning_rate=0.1,
-        global_step=tf.compat.v1.train.get_global_step(),
-        decay_steps=10000,
-        decay_rate=0.96))
-
-estimator.train(input_fn=lambda: df_to_dataset(train, batch_size=batch_size), steps=1000)
-metrics = estimator.evaluate(input_fn=lambda: df_to_dataset(test, batch_size=batch_size))
-print(metrics)
-
-print("predict")
-s = estimator.predict(input_fn=lambda: df_to_dataset(test, batch_size=batch_size))
-for i in s:
-    print(i)
-    break
-
-# estimator.export_saved_model()
-['Age', 'Sex', 'Chol', 'Fbs', 'Oldpeak', 'Slope', 'Ca']
-
-
-def serving_input_fn():
-    label_ids = tf.compat.v1.placeholder(tf.int32, [None], name='target')
-    Age_ids = tf.compat.v1.placeholder(tf.int32, [None], name='Age')
-    Sex_ids = tf.compat.v1.placeholder(tf.int32, [None], name='Sex')
-    Chol_ids = tf.compat.v1.placeholder(tf.int32, [None], name='Chol')
-    Fbs_ids = tf.compat.v1.placeholder(tf.int32, [None], name='Fbs')
-    Oldpeak_ids = tf.compat.v1.placeholder(tf.int32, [None], name='Oldpeak')
-    Slope_ids = tf.compat.v1.placeholder(tf.int32, [None], name='Slope')
-    Ca_ids = tf.compat.v1.placeholder(tf.int32, [None], name='Ca')
-    Thal_ids = tf.compat.v1.placeholder(tf.string, [None], name='Thal')
-    input_fn = tf.estimator.export.build_raw_serving_input_receiver_fn({
-        # 'target': label_ids,
-        'Age': Age_ids,
-        'Sex': Sex_ids,
-        'Chol': Chol_ids,
-        'Fbs': Fbs_ids,
-        'Oldpeak': Oldpeak_ids,
-        'Slope': Slope_ids,
-        'Ca': Ca_ids,
-        'Thal': Thal_ids,
-    })()
-    return input_fn
-
-
-estimator.export_saved_model(export_dir_base="/Users/songfeng/workspace/github/tensorflowDemo/model/widedeep3_pb",
-                             serving_input_receiver_fn=serving_input_fn)
