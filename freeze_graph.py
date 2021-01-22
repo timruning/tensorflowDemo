@@ -395,7 +395,7 @@ def run_main():
     parser.add_argument(
         "--output_graph",
         type=str,
-        default="",
+        default="model/2.4/model.pb",
         help="Output \'GraphDef\' file name.")
     parser.add_argument(
         "--input_binary",
@@ -407,7 +407,7 @@ def run_main():
     parser.add_argument(
         "--output_node_names",
         type=str,
-        default="",
+        default="total",
         help="The name of the output nodes, comma separated.")
     parser.add_argument(
         "--restore_op_name",
@@ -460,7 +460,7 @@ def run_main():
     parser.add_argument(
         "--input_saved_model_dir",
         type=str,
-        default="",
+        default="model/2.4/subclass/wide",
         help="Path to the dir with TensorFlow \'SavedModel\' file and variables.")
     parser.add_argument(
         "--saved_model_tags",
