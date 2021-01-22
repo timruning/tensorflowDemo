@@ -168,7 +168,7 @@ loss_fn = tf.keras.losses.MeanSquaredError()
 
 model.compile(optimizer=ftrl, loss=loss_fn)
 
-log_dir = "../logs/fit/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+log_dir = "../logs/2.4/fit/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
 
 model.fit(train_ds, epochs=1)
@@ -178,4 +178,4 @@ model.fit(x=train_ds,
           validation_data=(test_ds),
           callbacks=[tensorboard_callback])
 
-model.save()
+model.save("../model/2.4/subclass/wide")
