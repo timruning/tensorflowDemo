@@ -186,50 +186,37 @@ loss_fn = tf.keras.losses.MeanSquaredError()
 
 model.compile(optimizer=ftrl, loss=loss_fn)
 
-log_dir = "../logs/fit/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+log_dir = "../logs/1.14/estimator/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
 
-# estimator = tf.keras.estimator.model_to_estimator(
-#     keras_model=model, model_dir="../model/1.14/estimator"
-# )
-#
-# estimator.train(input_fn=lambda: df_to_dataset(train, batch_size=10), steps=10)
+estimator = tf.keras.estimator.model_to_estimator(
+    keras_model=model, model_dir="../model/1.14/estimator"
+)
 
-# model.fit(train_ds, epochs=1)
-#
-model.fit(x=train_ds,
-          epochs=5,
-          validation_data=test_ds,
-          callbacks=[tensorboard_callback])
-#
-# model.save("../model/1.14/wide1", save_format="tf")
-tf.compat.v1.keras.experimental.export_saved_model(model=model, saved_model_path="../model/1.14/wide1",
-                                                   serving_only=True,
-                                                   # custom_objects = {""}
-                                                   )
-# new_model = tf.keras.experimental.load_from_saved_model("../model/1.14/wide1")
-# new_model.summary()
+estimator.train(input_fn=lambda: df_to_dataset(train, batch_size=10), steps=10)
 
-
-# tf.keras.models.save_model(model=model,filepath="../model/1.14/wide1",save_format="tf")
-
-
-#
-# print("hello")
-# s = ""
-# for i in range(10):
-#     s += "\thello"
-# print(s)
-# #
-# #
-# # model.save("../model/1.14/wide",save_format="tf")
-# # model.summary()
-# # del model
-# # print("new")
+def serving_input_fn():
+    label_ids = tf.compat.v1.placeholder(tf.int32, [None], name='target')
+    Age_ids = tf.compat.v1.placeholder(tf.int32, [None], name='Age')
+    Sex_ids = tf.compat.v1.placeholder(tf.int32, [None], name='Sex')
+    Chol_ids = tf.compat.v1.placeholder(tf.int32, [None], name='Chol')
+    Fbs_ids = tf.compat.v1.placeholder(tf.int32, [None], name='Fbs')
+    Oldpeak_ids = tf.compat.v1.placeholder(tf.int32, [None], name='Oldpeak')
+    Slope_ids = tf.compat.v1.placeholder(tf.int32, [None], name='Slope')
+    Ca_ids = tf.compat.v1.placeholder(tf.int32, [None], name='Ca')
+    input_fn = tf.estimator.export.build_raw_serving_input_receiver_fn({
+        # 'target': label_ids,
+        'Age': Age_ids,
+        'Sex': Sex_ids,
+        'Chol': Chol_ids,
+        'Fbs': Fbs_ids,
+        'Oldpeak': Oldpeak_ids,
+        'Slope': Slope_ids,
+        'Ca': Ca_ids,
+    })()
+    return input_fn
 
 
-# from tensorflow.python.saved_model import loader
-#
-# with tf.Session() as sess:
-#     loader.load(sess, [], "../model/1.14/wide1")
-#     print("abc")
+estimator.export_saved_model(export_dir_base="../model/1.14/estimator_pb",
+                             serving_input_receiver_fn=serving_input_fn)
+
