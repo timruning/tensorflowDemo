@@ -191,8 +191,8 @@ estimator = tf.keras.estimator.model_to_estimator(
     keras_model=model, model_dir="../model/1.14/estimator"
 )
 
-estimator.train(input_fn=lambda: df_to_dataset(train, batch_size=10), steps=10)
 
+# estimator.train(input_fn=lambda: df_to_dataset(train, batch_size=10), steps=10)
 
 def serving_input_fn():
     label_ids = tf.compat.v1.placeholder(tf.int32, [None], name='target')
