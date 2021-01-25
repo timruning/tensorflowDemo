@@ -138,15 +138,7 @@ thal_embedding = feature_column.embedding_column(thal, dimension=8)
 # 组合列
 crossed_feature = feature_column.crossed_column([age_buckets, thal], hash_bucket_size=1000)
 crossed_feature = feature_column.indicator_column(crossed_feature)
-# feature_columns.append(crossed_feature)
-# line_columns.append(crossed_feature)
 
-# demo(crossed_feature)
-
-# feature_layer = tf.keras.layers.DenseFeatures(feature_columns)
-
-# print(feature_layer(example_batch).numpy())
-# print(feature_layer(example_batch).numpy().shape)
 batch_size = 32
 train_ds = df_to_dataset(train, batch_size=batch_size)
 val_ds = df_to_dataset(val, shuffle=False, batch_size=batch_size)
@@ -156,30 +148,36 @@ adagrad = tf.keras.optimizers.Adagrad(learning_rate=0.001, initial_accumulator_v
 
 ftrl = tf.compat.v1.keras.optimizers.Ftrl(learning_rate=0.01)
 
-feature_layer = tf.compat.v1.keras.layers.DenseFeatures(feature_columns)
+input_features = {
+    "Age": tf.keras.layers.Input(dtype=tf.int32, shape=[None], name='Age'),
+    "Sex": tf.keras.layers.Input(dtype=tf.int32, shape=[None], name='Sex'),
+    "Chol": tf.keras.layers.Input(dtype=tf.int32, shape=[None], name='Chol'),
+    "Fbs": tf.keras.layers.Input(dtype=tf.int32, shape=[None], name='Fbs'),
+    "Oldpeak": tf.keras.layers.Input(dtype=tf.int32, shape=[None], name='Oldpeak'),
+    "Slope": tf.keras.layers.Input(dtype=tf.int32, shape=[None], name='Slope'),
+    "Ca": tf.keras.layers.Input(dtype=tf.int32, shape=[None], name='Ca'),
+    # "Thal": tf.keras.layers.Input(dtype=tf.string, shape=[None], name='Thal'),
+}
 
-# model1 = LinearModel()
-# x = model1(feature_layer)
-# model = tf.keras.Model(feature_layer, x)
-
-
-# model1 = tf.keras.experimental.WideDeepModel()
-# model1 = tf.keras.experimental.LinearModel()
-# activate = tf.keras.activations.sigmoid
-model1 = LinearModel.LinearModel(activation=tf.keras.activations.sigmoid)
-model = tf.keras.Sequential([feature_layer, model1])
-
-# class Model(tf.keras.Model):
+# class MyModel(tf.keras.Model):
 #     def __init__(self):
-#         super(Model, self).__init__()
+#         super(MyModel, self).__init__()
 #         self.feature_layes = tf.compat.v1.keras.layers.DenseFeatures(feature_columns)
-#         self.linear = LinearModel.LinearModel()
+#         self.linear = LinearModel.LinearModel(activation=tf.keras.activations.sigmoid)
+#         # self.linear = LinearModel.LinearModel()
 #
 #     def call(self, inputs, training=None, mask=None):
 #         x = self.feature_layes(inputs)
 #         x = self.linear(x)
 #         return x
-# model = Model()
+# model = MyModel()
+
+feature_layer = tf.compat.v1.keras.layers.DenseFeatures(feature_columns)
+dense = feature_layer(input_features)
+model1 = LinearModel.LinearModel(activation=tf.keras.activations.sigmoid)
+linear = model1(dense)
+
+model = tf.keras.Model(input_features, linear)
 
 opt = tf.keras.optimizers.Adam()
 loss_fn = tf.keras.losses.MeanSquaredError()
@@ -194,6 +192,7 @@ estimator = tf.keras.estimator.model_to_estimator(
 )
 
 estimator.train(input_fn=lambda: df_to_dataset(train, batch_size=10), steps=10)
+
 
 def serving_input_fn():
     label_ids = tf.compat.v1.placeholder(tf.int32, [None], name='target')
@@ -219,4 +218,3 @@ def serving_input_fn():
 
 estimator.export_saved_model(export_dir_base="../model/1.14/estimator_pb",
                              serving_input_receiver_fn=serving_input_fn)
-
