@@ -150,40 +150,15 @@ test_ds = df_to_dataset(test, shuffle=False, batch_size=batch_size)
 adagrad = tf.keras.optimizers.Adagrad(learning_rate=0.001, initial_accumulator_value=0.1)
 
 ftrl = tf.keras.optimizers.Ftrl(learning_rate=0.01)
+
+model = tf.keras.models.load_model("../model/2.4/subclass/wide")
+
 opt = tf.keras.optimizers.Adam()
 loss_fn = tf.keras.losses.MeanSquaredError()
 
-feature_layer = tf.keras.layers.DenseFeatures(feature_columns)
-# model1 = LinearModel()
-# x = model1(feature_layer)
-# model = tf.keras.Model(feature_layer, x)
-
-
-# model1 = tf.keras.experimental.WideDeepModel()
-model1 = LinearModel()
-
-model = tf.keras.Sequential([feature_layer, model1])
 model.compile(optimizer=ftrl, loss=loss_fn)
 
-
-# input_features = {
-#     "Age": tf.keras.layers.Input(dtype=tf.int32, shape=[None], name='Age'),
-#     "Sex": tf.keras.layers.Input(dtype=tf.int32, shape=[None], name='Sex'),
-#     "Chol": tf.keras.layers.Input(dtype=tf.int32, shape=[None], name='Chol'),
-#     "Fbs": tf.keras.layers.Input(dtype=tf.int32, shape=[None], name='Fbs'),
-#     "Oldpeak": tf.keras.layers.Input(dtype=tf.int32, shape=[None], name='Oldpeak'),
-#     "Slope": tf.keras.layers.Input(dtype=tf.int32, shape=[None], name='Slope'),
-#     "Ca": tf.keras.layers.Input(dtype=tf.int32, shape=[None], name='Ca'),
-#     "Thal": tf.keras.layers.Input(dtype=tf.string, shape=[None], name='Thal'),
-# }
-#
-# dense_layer = tf.keras.layers.DenseFeatures(feature_columns)(input_features)
-# linear = LinearModel()(dense_layer)
-# model = tf.keras.Model(input_features, linear)
-# model.compile(optimizer=ftrl, loss=loss_fn)
-
-
-log_dir = "../logs/2.4/fit/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+log_dir = "../logs/2.4/fit1/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
 
 model.fit(train_ds, epochs=1)
@@ -192,5 +167,5 @@ model.fit(x=train_ds,
           epochs=5,
           validation_data=(test_ds),
           callbacks=[tensorboard_callback])
-tf.keras.models.save_model(model=model,filepath="../model/2.4/subclass/wide")
 
+model.save("../model/2.4/subclass/wide1")

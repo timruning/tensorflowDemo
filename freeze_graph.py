@@ -407,7 +407,7 @@ def run_main():
     parser.add_argument(
         "--output_node_names",
         type=str,
-        default="linear_model/BiasAdd",  # 'linear_model/BiasAdd'
+        default="sequential/linear_model/kernel",  # 'linear_model/BiasAdd'
         help="The name of the output nodes, comma separated.")
     parser.add_argument(
         "--restore_op_name",
@@ -460,7 +460,7 @@ def run_main():
     parser.add_argument(
         "--input_saved_model_dir",
         type=str,
-        default="/Users/songfeng/workspace/github/tensorflowDemo/model/2.4/estimator.pb/1611299731",
+        default="/Users/songfeng/workspace/github/tensorflowDemo/model/2.4/estimator.pb/1611663249",
         help="Path to the dir with TensorFlow \'SavedModel\' file and variables.")
     parser.add_argument(
         "--saved_model_tags",
