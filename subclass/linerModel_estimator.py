@@ -172,10 +172,8 @@ input_features = {
 #         return x
 # model = MyModel()
 
-feature_layer = tf.compat.v1.keras.layers.DenseFeatures(feature_columns)
-dense = feature_layer(input_features)
-model1 = LinearModel.LinearModel(activation=tf.keras.activations.sigmoid)
-linear = model1(dense)
+dense = tf.compat.v1.keras.layers.DenseFeatures(feature_columns=feature_columns)(input_features)
+linear = LinearModel.LinearModel(activation=tf.keras.activations.sigmoid)(dense)
 
 model = tf.keras.Model(input_features, linear)
 
