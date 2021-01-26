@@ -178,6 +178,7 @@ tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram
 estimator = tf.keras.estimator.model_to_estimator(keras_model=model, model_dir="../model/2.4/estimator")
 estimator.train(input_fn=lambda: df_to_dataset(train, batch_size=batch_size), steps=1000)
 
+
 def serving_input_fn():
     label_ids = tf.compat.v1.placeholder(tf.int32, [None], name='target')
     Age_ids = tf.compat.v1.placeholder(tf.int32, [None], name='Age')
@@ -204,5 +205,3 @@ def serving_input_fn():
 
 estimator.export_saved_model(export_dir_base="../model/2.4/estimator.pb",
                              serving_input_receiver_fn=serving_input_fn)
-
-
